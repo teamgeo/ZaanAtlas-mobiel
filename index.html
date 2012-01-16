@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+	<title>NYS Orthos Online Mobile</title>
+	<meta name="Author" content="bryanmcbride.com" /> 
+    <meta name="Keywords" content="Mobile, GIS, Mapping, Orthoimagery, New York" /> 
+    <meta name="Description" content="NYSOOM is a touch-optimized web mapping application for viewing the entire collection of orthoimagery from the New York Statewide Digital Orthoimagery Program (1994-Present)." /> 
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<link rel="stylesheet" href="resources/jquery.mobile-1.0/jquery.mobile-1.0.min.css">
+	<script src="resources/jquery-1.6.4/jquery-1.6.4.min.js"></script>
+	<script src="resources/jquery.mobile-1.0/jquery.mobile-1.0.min.js"></script>
+	<script src="resources/OpenLayers.mobile.js"></script>
+	<style>
+	.olControlAttribution {
+		font-size: 10px;
+		bottom: 5px;
+		left: 5px;
+	}
+	#navigation {
+		top: 70px;
+	}
+	#mapPage, #mapPage .ui-content, #map {
+		width: 100%;
+		height: 100%;
+	}
+	.olControlAttribution {
+		font-size: 10px;
+		bottom: 5px;
+		right: 5px;
+	}
+	#navigation {
+		position: absolute;
+		bottom: 70px;
+		left: 10px;
+		z-index: 1000;
+	}
+	#navigation .ui-btn-icon-notext {
+		display: block;
+		padding: 7px 6px 7px 8px;
+	}
+	.ui-icon-locate {
+		background-image: url(img/locate.png);
+	}
+	.ui-icon-layers {
+		background-image: url(img/layers.png);
+	}
+	.ui-content .ui-listview-inset, #search_results {
+		margin: 1em;
+	}
+	.ui-content .ui-listview {
+		margin: 0px;
+	}
+	</style>
+</head>
+<body onLoad="startup()">
+<div data-role="page" id="mappage">
+  <div data-role="header" data-nobackbtn="true" data-fixed="true"> 
+	<a href="#" id="locate" data-role="button" data-icon="locate" data-iconpos="right" class="ui-btn-right">Locate</a>
+	<h1 style="text-align: left; margin: 11px">NYS Orthos Online Mobile</h1>
+	</div>
+  <div id="map" data-role="content" style="padding: 0px;">
+  </div>
+
+  <div data-role="footer" data-fixed="true" style="text-align: center; padding: 5px 0;">
+	<a href="#searchpage" data-icon="search" data-role="button">Search</a>
+	<a href="#layerspage" data-icon="layers" data-role="button">Layers</a>
+	<a href="#aboutpage" data-icon="info" data-role="button" data-transition="flip">About</a>
+  </div>
+  <div id="navigation" data-role="controlgroup" data-type="vertical">
+	<a href="#" data-role="button" data-icon="plus" id="plus" data-iconpos="notext"></a>
+	<a href="#" data-role="button" data-icon="minus" id="minus" data-iconpos="notext"></a>
+  </div>
+</div>
+
+<div data-role="page" id="searchpage">
+  <div data-role="header" data-position="fixed">
+	<a href="#mappage" data-icon="arrow-l">Map</a>
+	<h1  style="text-align: center; margin: 11px">Place Name Search</h1>
+  </div>
+  <div data-role="fieldcontain">
+	<center><input type="search" name="query" id="query" value="" style="padding: 5px" placeholder="Albany" autocomplete="off"/></center>
+  </div>
+  <ul data-role="listview" data-inset="true" id="search_results"></ul> 
+</div>
+
+<div data-role="page" id="layerspage">
+  <div data-role="header" data-position="fixed">
+	<a href="#mappage" data-icon="arrow-l">Map</a>
+	<h1>Map Layers</h1>
+  </div>
+	<center>
+	<select name="opacity" id="opacity" data-native-menu="false">
+	<option value="1">100% Imagery Opacity</option>
+	<option value="0.75">75% Imagery Opacity</option>
+	<option value="0.5">50% Imagery Opacity</option>
+	<option value="0.25">25% Imagery Opacity</option>
+	<option value="0">0% Imagery Opacity</option>
+	</select>
+	</center>
+	<div style="padding-left: 5px; padding-right: 5px">
+	<h3>Misc.</h3>
+	<fieldset data-role="controlgroup"> 
+		<input autocomplete="off" type="checkbox" name="wta" id="wta" class="custom" onchange="if ($('#wta').is(':checked')) {getWTAimage();} else (WTA.setVisibility(false))"/> 
+		<label for="wta">Winter Travel Advisory (DOT)<br><img src='img/wtaLegend.png'></img></label>
+		<input autocomplete="off" type="checkbox" name="radar" id="radar" class="custom" onchange="if ($('#radar').is(':checked')) {radar.setVisibility(true)} else (radar.setVisibility(false))"/> 
+		<label for="radar">NWS RIDGE Radar</label>
+	</fieldset>
+	<h3>Natural Color Imagery</h3>
+	<fieldset data-role="controlgroup"> 
+		<input autocomplete="off" type="checkbox" name="2010" id="2010" class="custom" onchange="if ($('#2010').is(':checked')) {orthos2010.setVisibility(true)} else (orthos2010.setVisibility(false))"/> 
+		<label for="2010">2010 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2009" id="2009" class="custom" onchange="if ($('#2009').is(':checked')) {orthos2009.setVisibility(true)} else (orthos2009.setVisibility(false))"/> 
+		<label for="2009">2009 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2008" id="2008" class="custom" onchange="if ($('#2008').is(':checked')) {orthos2008.setVisibility(true)} else (orthos2008.setVisibility(false))"/> 
+		<label for="2008">2008 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2007" id="2007" class="custom" onchange="if ($('#2007').is(':checked')) {orthos2007.setVisibility(true)} else (orthos2007.setVisibility(false))"/> 
+		<label for="2007">2007 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2006" id="2006" class="custom" onchange="if ($('#2006').is(':checked')) {orthos2006.setVisibility(true)} else (orthos2006.setVisibility(false))"/> 
+		<label for="2006">2006 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2005" id="2005" class="custom" onchange="if ($('#2005').is(':checked')) {orthos2005.setVisibility(true)} else (orthos2005.setVisibility(false))"/> 
+		<label for="2005">2005 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2004" id="2004" class="custom" onchange="if ($('#2004').is(':checked')) {orthos2004.setVisibility(true)} else (orthos2004.setVisibility(false))"/> 
+		<label for="2004">2004 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2003" id="2003" class="custom" onchange="if ($('#2003').is(':checked')) {orthos2003.setVisibility(true)} else (orthos2003.setVisibility(false))"/> 
+		<label for="2003">2003 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2002" id="2002" class="custom" onchange="if ($('#2002').is(':checked')) {orthos2002.setVisibility(true)} else (orthos2002.setVisibility(false))"/> 
+		<label for="2002">2002 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2001" id="2001" class="custom" onchange="if ($('#2001').is(':checked')) {orthos2001.setVisibility(true)} else (orthos2001.setVisibility(false))"/> 
+		<label for="2001">2001 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2000" id="2000" class="custom" onchange="if ($('#2000').is(':checked')) {orthos2000.setVisibility(true)} else (orthos2000.setVisibility(false))"/> 
+		<label for="2000">2000 Imagery</label>
+		<input autocomplete="off" type="checkbox" name="NAPP" id="NAPP" class="custom" onchange="if ($('#NAPP').is(':checked')) {nappOrthos.setVisibility(true)} else (nappOrthos.setVisibility(false))"/> 
+		<label for="NAPP">NAPP Imagery</label>	
+	</fieldset>
+	<h3>Color Infrared Imagery</h3>
+	<fieldset data-role="controlgroup"> 
+		<input autocomplete="off" type="checkbox" name="2010cir" id="2010cir" class="custom" onchange="if ($('#2010cir').is(':checked')) {orthos2010cir.setVisibility(true)} else (orthos2010cir.setVisibility(false))"/> 
+		<label for="2010cir">2010 CIR Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2009cir" id="2009cir" class="custom" onchange="if ($('#2009cir').is(':checked')) {orthos2009cir.setVisibility(true)} else (orthos2009cir.setVisibility(false))"/> 
+		<label for="2009cir">2009 CIR Imagery</label>
+		<input autocomplete="off" type="checkbox" name="2008cir" id="2008cir" class="custom" onchange="if ($('#2008cir').is(':checked')) {orthos2008cir.setVisibility(true)} else (orthos2008cir.setVisibility(false))"/> 
+		<label for="2008cir">2008 CIR Imagery</label>
+	</fieldset>
+	<h3>Base Layers</h3>
+	<fieldset data-role="controlgroup"> 
+		<input type="radio" name="basemap" id="bingStreets" value="bingStreets" checked="checked" onchange="map.setBaseLayer(bingStreets);" /> 
+		<label for="bingStreets">Bing Streets</label> 
+		<input type="radio" name="basemap" id="bingImagery" value="bingImagery" onchange="map.setBaseLayer(bingSat);" /> 
+		<label for="bingImagery">Bing Imagery</label>
+	</fieldset> 
+	</div> 
+</div>
+
+<div data-role="page" id="aboutpage">
+	<div data-role="header" data-position="fixed">
+	<a href="#mappage" data-icon="arrow-l">Map</a>
+	<h1>About</h1>
+	</div>
+	<div data-role="content" style="padding:5px">
+	<div data-role="fieldcontain">
+		<div style="text-align:center; font-weight:bold;">NYS Orthos Online Mobile (NYSOOM)</div>
+		<br>is a touch-optimized web application for viewing the entire collection of orthoimagery from the New York Statewide Digital Orthoimagery Program (1994-Present).
+		<p>Visit the official NYS Orthos Online website at <a href="http://orthos.dhses.ny.gov/">http://orthos.dhses.ny.gov/</a>.
+	</div>
+	<p>Developed by: <a href="http://www.bryanmcbride.com">Bryan R. McBride, GISP</a></p>
+	<p>Powered by: <a href="http://jquerymobile.com">JQuery Mobile</a> &amp; <a href="http://openlayers.org">OpenLayers</a></p>
+	</div>
+</div>
+<script type="text/javascript">
+var map, footer, header, content, viewHeight, contentHeight, myLocation, mapquestOSM, mapquestImagery, bingStreets, bingSat, nappOrthos, orthos2000, orthos2001, orthos2002, orthos2003, orthos2004, orthos2005, orthos2006, orthos2007, orthos2008, orthos2009, orthos2010, orthos2008cir, orthos2009cir, orthos2010cir, WTA, radar;
+var gg = new OpenLayers.Projection("EPSG:4326");
+var sm = new OpenLayers.Projection("EPSG:900913");
+OpenLayers.Util.onImageLoadError = function() { this.style.display="none";}
+
+function fixContentHeight() {
+    footer = $("div[data-role='footer']:visible");
+    header = $("div[data-role='header']:visible");
+    content = $("div[data-role='content']:visible:visible");
+    viewHeight = $(window).height();
+    contentHeight = viewHeight - footer.outerHeight() - header.outerHeight();
+    if ((content.outerHeight() + footer.outerHeight() + header.outerHeight()) !== viewHeight) {
+        contentHeight -= (content.outerHeight() - content.height());
+        content.height(contentHeight);
+    }
+    document.getElementById("map").style.height = contentHeight + "px";
+}
+$(window).bind("orientationchange resize pageshow", fixContentHeight);
+
+function startup() {
+    // Start with map page
+    if (window.location.hash && window.location.hash != "#mappage") {
+        $.mobile.changePage("#mappage");
+    }
+    fixContentHeight();
+    init();
+}
+
+function getWTAimage() {
+	if (WTA) {
+		WTA.destroy();
+	}
+	WTA = new OpenLayers.Layer.Image('WTA', "http://geoserving.net/nysoom/wta.php?bbox="+map.getExtent().toBBOX()+"&width="+map.getSize().w+"&height="+map.getSize().h, new OpenLayers.Bounds(map.getExtent().left,map.getExtent().bottom,map.getExtent().right,map.getExtent().top), new OpenLayers.Size(map.getSize().w, map.getSize().h), {
+		isBaseLayer: false,
+		numZoomLevels: 22,
+		minScale: 13867008
+	});
+	map.addLayer(WTA);
+}
+
+function init() {
+	var attributionCtrl = new OpenLayers.Control.Attribution();
+	var geolocateCtrl = new OpenLayers.Control.Geolocate({
+        id: 'locate-control',
+        geolocationOptions: {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+        }
+    });
+	var touchnavCtrl = new OpenLayers.Control.TouchNavigation({
+		dragPanOptions: {
+			interval: 100,
+			enableKinetic: true
+		}
+	});
+	myLocation = new OpenLayers.Layer.Vector("My Location", {
+        displayInLayerSwitcher: true
+    });
+	arrayOSM = ["http://otile1.mqcdn.com/tiles/1.0.0/osm/${z}/${x}/${y}.png",
+				"http://otile2.mqcdn.com/tiles/1.0.0/osm/${z}/${x}/${y}.png",
+				"http://otile3.mqcdn.com/tiles/1.0.0/osm/${z}/${x}/${y}.png",
+				"http://otile4.mqcdn.com/tiles/1.0.0/osm/${z}/${x}/${y}.png"];
+	arrayAerial = ["http://oatile1.mqcdn.com/naip/${z}/${x}/${y}.png",
+				"http://oatile2.mqcdn.com/naip/${z}/${x}/${y}.png",
+				"http://oatile3.mqcdn.com/naip/${z}/${x}/${y}.png",
+				"http://oatile4.mqcdn.com/naip/${z}/${x}/${y}.png"];
+	mapquestOSM = new OpenLayers.Layer.OSM("MapQuest-OSM", arrayOSM, {
+		numZoomLevels: 20
+	});
+	mapquestImagery = new OpenLayers.Layer.OSM("MapQuest Open Aerial Tiles", arrayAerial, {
+		numZoomLevels: 20
+	});
+	bingStreets = new OpenLayers.Layer.Bing({
+		key: "Ap6PC13ktG2lQOnnRUqi7bX6pPwkP93-fshU6LWlMeN503YdcZInCVMczp6k2joo",
+		type: "Road",
+		metadataParams: {
+			mapVersion: "v1"
+		},
+		name: "Bing Streets",
+		transitionEffect: 'resize'
+	});
+	bingSat = new OpenLayers.Layer.Bing({
+		key: "Ap6PC13ktG2lQOnnRUqi7bX6pPwkP93-fshU6LWlMeN503YdcZInCVMczp6k2joo",
+		type: "AerialWithLabels",
+		name: "Bing Imagery",
+		transitionEffect: 'resize'
+	});
+	nappOrthos = new OpenLayers.Layer.XYZ("NAPP Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/NAPP/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2000 = new OpenLayers.Layer.XYZ("2000 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2000/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2001 = new OpenLayers.Layer.XYZ("2001 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2001/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2002 = new OpenLayers.Layer.XYZ("2002 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2002/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2003 = new OpenLayers.Layer.XYZ("2003 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2003/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2004 = new OpenLayers.Layer.XYZ("2004 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2004/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2005 = new OpenLayers.Layer.XYZ("2005 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2005/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2006 = new OpenLayers.Layer.XYZ("2006 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2006/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2007 = new OpenLayers.Layer.XYZ("2007 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2007/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2008 = new OpenLayers.Layer.XYZ("2008 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2008/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2009 = new OpenLayers.Layer.XYZ("2009 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2009/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2010 = new OpenLayers.Layer.XYZ("2010 Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2010/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2008cir = new OpenLayers.Layer.XYZ("2008 CIR Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2008_CIR/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2009cir = new OpenLayers.Layer.XYZ("2009 CIR Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2009_CIR/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	orthos2010cir = new OpenLayers.Layer.XYZ("2010 CIR Orthos", "http://www.orthos.dhses.ny.gov/ArcGIS/rest/services/2010_CIR/MapServer/tile/${z}/${y}/${x}", {
+		sphericalMercator: true,
+		numZoomLevels: 20,
+		isBaseLayer: false,
+		visibility: false
+	});
+	radar = new OpenLayers.Layer.WMS("NWS RIDGE Radar", "	http://nowcoast.noaa.gov/wms/com.esri.wms.Esrimap/obs", {
+        layers: "RAS_RIDGE_NEXRAD",
+        transparent: true,
+        format: "image/png"
+    }, {
+        isBaseLayer: false,
+        singleTile: false,
+        visibility: false
+    });
+
+    map = new OpenLayers.Map({
+        div: "map",
+        theme: null,
+        projection: sm,
+        units: "m",
+        numZoomLevels: 20,
+        maxResolution: 156543.0339,
+        maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34),
+        controls: [geolocateCtrl, attributionCtrl, touchnavCtrl],
+        layers: [bingStreets, bingSat, orthos2008cir, orthos2009cir, orthos2010cir, nappOrthos, orthos2000, orthos2001, orthos2002, orthos2003, orthos2004, orthos2005, orthos2006, orthos2007, orthos2008, orthos2009, orthos2010, radar, myLocation],
+        center: new OpenLayers.LonLat(-8460661.7856519, 5251529.5905737),
+        zoom: 6
+    });
+    var style = {
+        fillOpacity: 0.1,
+        fillColor: '#000',
+        strokeColor: '#f00',
+        strokeOpacity: 0.6
+    };
+    geolocateCtrl.events.register("locationupdated", this, function (e) {
+        myLocation.removeAllFeatures();
+        myLocation.addFeatures([
+        new OpenLayers.Feature.Vector(
+        e.point, {}, {
+            graphicName: 'cross',
+            strokeColor: '#f00',
+            strokeWidth: 2,
+            fillOpacity: 0,
+            pointRadius: 10
+        }), new OpenLayers.Feature.Vector(
+        OpenLayers.Geometry.Polygon.createRegularPolygon(
+        new OpenLayers.Geometry.Point(e.point.x, e.point.y), e.position.coords.accuracy / 2, 50, 0), {}, style)]);
+        map.zoomToExtent(myLocation.getDataExtent());
+    });
+	
+	map.events.on({
+		moveend: function() {
+			if (WTA && WTA.getVisibility() == true) {
+				getWTAimage();
+			}
+		}
+	});
+}
+// Zoom tools
+$("#plus").bind('vclick', function () {
+    map.zoomIn();
+});
+$("#minus").bind('vclick', function () {
+    map.zoomOut();
+});
+// GeoLocation
+$("#locate").bind('vclick', function () {
+    var control = map.getControlsBy("id", "locate-control")[0];
+    if (control.active) {
+        control.getCurrentLocation();
+    } else {
+        control.activate();
+    }
+});
+// GeoNames Search
+$('#searchpage').live('pageshow', function (event, ui) {
+    $('#query').bind('change', function (e) {
+        $('#search_results').empty();
+        if ($('#query')[0].value === '') {
+            return;
+        }
+        $.mobile.showPageLoadingMsg();
+		//$.mobile.pageLoading();
+        // Prevent form send
+        e.preventDefault();
+        var searchUrl = 'http://ws.geonames.org/searchJSON?featureClass=P&maxRows=10&countryCode=US&adminCode1=NY';
+        searchUrl += '&name_startsWith=' + $('#query')[0].value;
+        $.getJSON(searchUrl, function (data) {
+            $.each(data.geonames, function () {
+                var place = this;
+                $('<li>').hide().append($('<h2 />', {
+                    text: place.name
+                })).append($('<p />', {
+                    html: '<b>' + place.adminName1 + '</b> ' + place.fcodeName
+                })).appendTo('#search_results').click(function () {
+                    $.mobile.changePage('#mappage');
+                    var lonlat = new OpenLayers.LonLat(place.lng, place.lat);
+                    map.setCenter(lonlat.transform(gg, sm), 11);
+                }).show();
+            });
+            $('#search_results').listview('refresh');
+            $.mobile.hidePageLoadingMsg();
+			//$.mobile.pageLoading(true);
+        });
+    });
+    // only listen to the first event triggered
+    $('#searchpage').die('pageshow', arguments.callee);
+});
+$("#opacity").live("change", function () {
+	var overlayLayers = map.getLayersBy("isBaseLayer", false);
+    for (i = 0; i < overlayLayers.length; i++) {
+        overlayLayers[i].setOpacity($(this).val());
+    }
+});
+</script>
+</body>
+</html>
