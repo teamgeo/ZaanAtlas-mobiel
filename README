@@ -1,0 +1,7 @@
+ZaanAtlas Mobile
+These instructions describe how to deploy ZaanAtlas Mobile assuming you have a copy of the application source code from GitHub.
+
+Getting a copy of the application
+To get a copy of the application source code, use subversion:
+
+you@prompt:~$ git clone http://github.com/teamgeo/ZaanAtlas-mobiel.git
